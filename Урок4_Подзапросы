@@ -1,0 +1,83 @@
+SELECT  product_name, units_in_stock
+FROM products
+WHERE units_in_stock < ALL (
+	SELECT AVG(od.quantity)
+	FROM order_details od
+	GROUP BY od.product_id
+)
+ORDER BY units_in_stock DESC;
+-- 25: меньше или равен 17
+
+SELECT o.customer_id, SUM(o.freight)
+FROM orders o
+WHERE o.freight >= (
+	SELECT AVG(o1.freight)
+	FROM orders o1
+) AND shipped_date BETWEEN '15-07-1996' AND '31-07-1996'
+GROUP BY o.customer_id
+ORDER BY SUM(o.freight) DESC;
+-- 3:
+--не ясно какой верен?
+SELECT customer_id, SUM(freight) AS freight_sum
+FROM orders
+INNER JOIN (
+	SELECT customer_id, AVG(freight) AS freight_avg
+	FROM orders
+	GROUP BY customer_id) oa
+USING(customer_id)
+WHERE freight > freight_avg AND shipped_date BETWEEN '1996-07-16' AND '1996-07-31'
+GROUP BY customer_id
+ORDER BY freight_sum;
+
+
+-- Задание 3
+SELECT 	customer_id,
+		ship_country,
+		order_price
+FROM orders
+INNER JOIN (
+	SELECT  order_id,
+			SUM(unit_price * quantity - unit_price * quantity * discount) AS order_price
+	FROM order_details
+	GROUP BY order_id ) AS od
+USING(order_id)
+WHERE ship_country IN ('Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 'Uruguay', 'Venezuela')
+and order_date >= '1997-09-01'  
+order by order_price DESC
+LIMIT 3;
+-- результат отличаентся от лекционного
+
+SELECT DISTINCT pr.product_name
+FROM products AS pr
+WHERE pr.product_id = ANY (
+	SELECT od.product_id
+	FROM order_details AS od
+	WHERE od.quantity = 10
+)
+order by product_name;
+-- 60:
+SELECT DISTINCT pr.product_name
+FROM products AS pr
+WHERE pr.product_id IN (
+	SELECT od.product_id
+	FROM order_details AS od
+	WHERE od.quantity = 10
+)
+order by product_name;
+-- 60:
+SELECT DISTINCT product_name, quantity
+FROM products
+INNER JOIN order_details USING(product_id)
+WHERE quantity = 10
+order by product_name;
+-- во всех случаях ответ отличается от лекционного 43
+
+-- иной запрос
+SELECT DISTINCT pr.product_name
+FROM products AS pr
+WHERE pr.product_id IN (
+	SELECT product_id
+	FROM order_details AS od
+	GRoup BY product_id
+	HAVING SUM(od.quantity) > 1000
+);
