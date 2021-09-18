@@ -11,7 +11,8 @@ tmp/
 
 # мои файлы
 Феофилов.docx
-
+# файлы, начинающиеся с тильды
+~*.*
 
 
 # https://github.com/github/gitignore
