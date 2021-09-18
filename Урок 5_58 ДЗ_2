@@ -1,0 +1,23 @@
+ALTER TABLE products
+ADD CONSTRAINT chk_products_unit_price CHECK (unit_price > 0);
+
+SELECT * FROM products;
+
+CREATE SEQUENCE IF NOT EXISTS seq_products_product_id
+INCREMENT 1
+MINVALUE 1
+MAXVALUE 2500
+START WITH 78;
+ALTER SEQUENCE public.seq_products_product_id
+    OWNER TO mihaildb;
+ALTER SEQUENCE public.seq_products_product_id
+    OWNED BY products.product_id;
+
+ALTER TABLE products
+ALTER COLUMN product_id SET DEFAULT nextval('seq_products_product_id');
+
+INSERT INTO products (product_name, supplier_id, discontinued)
+VALUES
+('marshmello', 8, 0)
+RETURNING *;
+

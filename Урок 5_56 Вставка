@@ -1,0 +1,32 @@
+INSERT INTO author
+VALUES
+(10, 'Jon Silver', 1.5);
+
+SELECT * FROM author;
+
+INSERT INTO author (author_id, full_name)
+VALUES
+(11, 'Bob Gray');
+SELECT * FROM author;
+
+INSERT INTO author (author_id, full_name)
+VALUES
+(12, 'Name1'),
+(13, 'Name1'),
+(14, 'Name1');
+SELECT * FROM author;
+
+-- создание таблицы с данными на основе другой таблицы:
+SELECT *
+INTO best_authors
+FROM author
+WHERE rating >= 4.5;
+
+SELECT * FROM best_authors;
+
+
+INSERT INTO best_authors
+SELECT *
+FROM author
+WHERE rating < 4.5;
+SELECT * FROM best_authors;

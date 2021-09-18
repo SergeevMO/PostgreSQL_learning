@@ -1,0 +1,51 @@
+ALTER TABLE chair ADD CONSTRAINT chair_id_pkey PRIMARY KEY (chair_id);
+
+INSERT INTO chair
+VALUES (1, 'name', 'dean');
+
+SELECT * FROM chair;
+
+INSERT INTO chair
+VALUES (1, 'name2', 'dean2');
+-- не вставится, так как 1 уже существует (ограничение уникальности)
+
+INSERT INTO chair
+VALUES (NULL, 'name2', 'dean2');
+-- не вставится, так как (ограничение отсутсвия неизвестного значения)
+
+INSERT INTO chair
+VALUES (3, 'name2', 'dean2');
+
+DROP TABLE chair;
+
+CREATE TABLE chair
+(
+	chair_id serial UNIQUE NOT NULL,
+	chair_name varchar,
+	dean varchar
+);
+
+INSERT INTO chair
+VALUES (1, 'name', 'dean');
+
+SELECT * FROM chair;
+
+INSERT INTO chair
+VALUES (1, 'name2', 'dean2');
+-- не вставится, так как 1 уже существует (ограничение уникальности)
+
+INSERT INTO chair
+VALUES (NULL, 'name2', 'dean2');
+-- не вставится, так как (ограничение отсутсвия неизвестного значения)
+/* Комбинация ограничений UNIQUE NOT NULL и ограничение PRIMARY KEY
+выполняют одну и туже функцию ограничения, но первые могут использоваться 
+для нескольких столбцов, в тов ремя как первичный ключ может быть только один */
+
+SELECT constraint_name
+FROM information_schema.key_column_usage
+WHERE table_schema = 'public';
+	
+-- удаление ограничения
+ALTER TABLE chair DROP CONSTRAINT chair_chair_id_key;
+--создание нового
+ALTER TABLE chair ADD CONSTRAINT chair_chair_id_pkey PRIMARY KEY (chair_id);

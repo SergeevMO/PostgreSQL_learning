@@ -1,0 +1,41 @@
+DROP TABLE publisher;
+DROP TABLE book_author;
+DROP TABLE book;
+
+CREATE TABLE publisher
+(
+	publisher_id int,
+	publisher_name varchar(128) NOT NULL,
+	address text,
+	
+	CONSTRAINT pk_poublisher_publisher_id PRIMARY KEY (publisher_id)
+);
+
+CREATE TABLE book
+(
+	book_id int,
+	title text NOT NULL,
+	isbn varchar(32) NOT NULL,
+	publisher_id int,
+	
+	CONSTRAINT pk_book_book_id PRIMARY KEY (book_id)
+);
+
+INSERT INTO publisher
+VALUES
+(1, 'Everyman''s Library', 'NY'),
+(2, 'Oxford University Press', 'NY'),
+(3, 'Grand Central Publishing', 'Washington'),
+(4, 'Simon & Schuster', 'Chicago');
+
+INSERT INTO book
+VALUES
+(1, 'The Diary of a Young Girl', '6199535566', 10);
+
+SELECT *FROM book;
+
+truncate table book;
+
+ALTER TABLE book 
+ADD CONSTRAINT fk_books_publisher FOREIGN KEY (publisher_id) REFERENCES publisher (publisher_id);
+

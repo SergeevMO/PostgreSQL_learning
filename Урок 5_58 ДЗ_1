@@ -1,0 +1,70 @@
+CREATE TABLE exam1
+(
+	exam1_id int GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1) UNIQUE NOT NULL,
+	exam1_name text,
+	exam_date date
+	-- или
+	-- CONSTRAINT exam1_exam1_id_ukey UNIQUE (exam1_id)
+);
+
+SELECT constraint_name
+FROM information_schema.key_column_usage
+WHERE table_schema = 'public'
+	AND table_name = 'exam1'
+	AND column_name ='exam1_id';
+
+ALTER TABLE exam1 DROP CONSTRAINT exam1_exam1_id_key;
+ALTER TABLE exam1 ADD CONSTRAINT exam1_exam1_id_pkey PRIMARY KEY (exam1_id);
+
+CREATE TABLE person
+(
+	person_id int NOT NULL,
+	first_name text NOT NULL,
+	last_name text NOT NULL,
+	
+	CONSTRAINT person_person_id_pkey PRIMARY KEY (person_id)
+);
+
+CREATE TABLE pasport
+(
+	pasport_id int NOT NULL,
+	serial_number int NOT NULL,
+	registration text NOT NULL,
+	person_id int NOT NULL,
+	
+	CONSTRAINT pasport_pasport_id_pkey PRIMARY KEY (pasport_id),
+	CONSTRAINT pasport_person_id_fkey FOREIGN KEY (person_id) REFERENCES person(person_id)
+);
+
+ALTER TABLE book 
+ADD COLUMN weight real CONSTRAINT book_weight_chk CHECK (weight > 0 AND weight < 100);
+
+SELECT * FROM book;
+
+INSERT INTO book
+VALUES
+(default, 'title', 'isbn', 1, 50.5);
+INSERT INTO book
+VALUES
+(default, 'title', 'isbn', 1, 120.2);
+INSERT INTO book
+VALUES
+(default, 'title', 'isbn', 1, -70.6);
+
+CREATE TABLE student1
+(
+	student1_id int GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1) NOT NULL,
+	full_name text,
+	course int DEFAULT 1
+);
+
+INSERT INTO student1
+VALUES
+(default, 'Petrov Ivan Olegovich', default);
+
+SELECT * FROM student1;
+
+ALTER TABLE student1 
+ALTER COLUMN course DROP DEFAULT;
+
+--*****************************************************************************************
