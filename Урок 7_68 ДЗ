@@ -1,0 +1,111 @@
+-- задание № 1
+CREATE VIEW orders_customers_employees AS
+SELECT 	o.order_date,
+		o.required_date,
+		o.shipped_date,
+		o.ship_postal_code,
+		cas.company_name,
+		cas.contact_name,
+		cas.phone,
+		e.last_name,
+		e.first_name,
+		e.title
+FROM orders AS o
+INNER JOIN customers AS cas ON o.customer_id = cas.customer_id
+INNER JOIN employees AS e ON o.employee_id = e.employee_id;
+
+SELECT *
+FROM orders_customers_employees
+WHERE order_date > '1997-01-01';
+-- 677 в лекции 678
+
+-- задание № 2
+CREATE VIEW ord_cus_emp AS
+SELECT	o.order_date,
+		o.required_date,
+		o.shipped_date,
+		o.ship_postal_code,
+		o.ship_country,
+		cas.company_name,
+		cas.contact_name,
+		cas.phone,
+		e.last_name,
+		e.first_name,
+		e.title
+		FROM orders AS o
+INNER JOIN customers AS cas ON o.customer_id = cas.customer_id
+INNER JOIN employees AS e ON o.employee_id = e.employee_id;
+
+-- нельзя вставить столбец
+ALTER VIEW ord_cus_emp ADD COLUMN postal_code USING customers;
+
+-- так тоже нельзя
+CREATE OR REPLACE VIEW ord_cus_emp AS
+SELECT	o.order_date,
+		o.required_date,
+		o.shipped_date,
+		o.ship_postal_code,
+		o.ship_country,
+		cas.company_name,
+		cas.contact_name,
+		cas.postal_code,
+		cas.phone,
+		e.last_name,
+		e.first_name,
+		e.title,
+		e.reports_to
+FROM orders AS o
+INNER JOIN customers AS cas ON o.customer_id = cas.customer_id
+INNER JOIN employees AS e ON o.employee_id = e.employee_id;
+
+-- переименуем существующее представление
+ALTER VIEW ord_cus_emp RENAME TO o_c_e;
+
+-- после этого стало возможным
+CREATE OR REPLACE VIEW ord_cus_emp AS
+SELECT	o.order_date,
+		o.required_date,
+		o.shipped_date,
+		o.ship_postal_code,
+		o.ship_country,
+		cas.company_name,
+		cas.contact_name,
+		cas.postal_code,
+		cas.phone,
+		e.last_name,
+		e.first_name,
+		e.title,
+		e.reports_to
+FROM orders AS o
+INNER JOIN customers AS cas ON o.customer_id = cas.customer_id
+INNER JOIN employees AS e ON o.employee_id = e.employee_id;
+
+SELECT *
+FROM ord_cus_emp
+ORDER BY ship_country;
+-- 831
+
+DROP VIEW IF EXISTS o_c_e;
+
+-- задание № 3
+CREATE VIEW discont AS
+SELECT *
+FROM products
+WHERE discontinued = 0
+WITH LOCAL CHECK OPTION;
+
+SELECT *
+FROM activ_products;
+
+INSERT INTO activ_products
+VALUES
+(default, 'ledenec', 10, 3, '1 kg pkg', 10, 20, 5, 5, 0);
+-- успешная вставка
+
+INSERT INTO activ_products
+VALUES
+(default, 'ledenec', 10, 3, '1 kg pkg', 10, 20, 5, 5, 1);
+-- новая строка нарушает ограничение-проверку для представления "discont"
+
+
+
