@@ -1,0 +1,62 @@
+SELECT *
+FROM orders
+LIMIT 10;
+
+-- если регион доставки не известен, то так и выведем
+SELECT	
+	order_id,
+	order_date,
+	COALESCE(ship_region, 'неизвестен') AS ship_region
+FROM orders
+LIMIT 10;
+
+SELECT *
+FROM employees;
+
+SELECT
+	last_name,
+	first_name,
+	COALESCE(region, 'N/A') AS region
+FROM employees;
+
+
+SELECT *
+FROM customers;
+
+INSERT INTO customers (customer_id, company_name, city)
+VALUES
+(92, 'RotFront', '');
+
+-- если в ячейке содержится пустая строка, то при выводе (но не в таблице) она будет заменена на 'неизвестен'
+SELECT
+	contact_name,
+	COALESCE(NULLIF(city, ''), 'неизвестен') AS city
+FROM customers
+--WHERE city = '';
+
+DROP TABLE budgets;
+CREATE TABLE budgets
+( 
+	dept serial,
+	current_year decimal,
+	previous_year decimal
+);
+INSERT INTO budgets (current_year, previous_year)
+VALUES 
+(100000, 150000),
+(NULL, 300000),
+(0, 100000),
+(NULL, 150000),
+(300000, 250000),
+(170000, 170000),
+(150000, NULL);
+
+SELECT *
+FROM budgets;
+
+-- вывести строчку 'то же самое как в прошлом году', если значения текущего года равны значениям предыдущего
+SELECT
+	dept,
+	COALESCE(TO_CHAR(NULLIF(current_year, previous_year), 'FM99999999'), 'то же самое как в прошлом году') AS budget
+FROM budgets
+WHERE current_year IS NOT NULL; -- иначе будет выведено это же сообщение, что неправильно

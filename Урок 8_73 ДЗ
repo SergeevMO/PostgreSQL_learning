@@ -1,0 +1,60 @@
+
+INSERT INTO customers(customer_id, contact_name, city, country, company_name)
+VALUES 
+('AAAAA', 'Alfred Mann', NULL, 'USA', 'fake_company'),
+('BBBBB', 'Alfred Mann', NULL, 'Austria', 'fake_company');
+
+INSERT INTO customers(customer_id, contact_name, city, country, company_name)
+VALUES 
+('AAAAB', 'Jhon Mann', 'abc', 'USA', 'fake_company'),
+('BBBBA', 'Jhon Mann', 'acd', 'Austria', 'fake_company');
+
+INSERT INTO customers(customer_id, contact_name, city, country, company_name)
+VALUES 
+('AAAAC', 'Jhon Mann', 'afc', 'USA', 'fake_company'),
+('BBBBC', 'Jhon Mann', 'ajd', 'Austria', 'fake_company');
+
+-- задание № 1
+-- Вывести имя контакта заказчика, его город и страну, отсортировав по возрастанию по имени контакта и городу,
+-- а если город равен NULL, то по имени контакта и стране. Проверить результат, используя заранее вставленные строки. 
+SELECT
+	contact_name,
+	city,
+	country
+FROM customers
+ORDER BY
+	contact_name,
+	CASE
+		WHEN city IS NOT NULL THEN city
+		ELSE country
+	END;
+
+-- задание № 2
+SELECT
+	product_name,
+	unit_price,
+	CASE
+		WHEN unit_price >= 100 THEN 'too expensive'
+		WHEN unit_price >= 50 AND unit_price < 100 THEN 'averige'
+		WHEN unit_price < 500 THEN 'low price'
+		ELSE 'неизвестно'
+	END AS exp_price
+FROM products
+ORDER BY unit_price DESC;
+
+-- задание № 3
+SELECT
+	cus.contact_name,
+	COALESCE(text(o.order_id), 'no_orders')
+FROM customers AS cus
+LEFT JOIN orders AS o ON cus.customer_id = o.customer_id
+WHERE order_id IS NULL;
+-- 9 (скорее всего последний результат от моего добавления)
+
+-- задание № 4
+SELECT
+	CONCAT(last_name, ' ', first_name),
+	COALESCE(NULLIF(title, 'Sales Representative'), 'Sales Stuff') AS title
+FROM employees
+WHERE title IS NOT NULL;
+-- 9
