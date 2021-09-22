@@ -1,0 +1,109 @@
+-- вернуть средние цены по типам продуктов
+CREATE OR REPLACE FUNCTION get_avg_prices_by_prod_categories() RETURNS SETOF double precision AS
+$$
+	SELECT AVG(unit_price)
+	FROM products
+	GROUP BY category_id
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_avg_prices_by_prod_categories() AS average_prices; 
+-- в лекции 8 групп
+
+
+-- возврат набора двух значений: среднее и сумму
+CREATE OR REPLACE FUNCTION get_avg_prices_by_prod_cats(OUT sum_price real, OUT avg_price float8)
+	RETURNS SETOF RECORD AS -- если это выражение убрать, то возвратится только одна строка
+$$
+	SELECT SUM(unit_price), AVG(unit_price)
+	FROM products
+	GROUP BY category_id
+$$ LANGUAGE SQL;
+
+SELECT sum_price
+FROM get_avg_prices_by_prod_cats();
+SELECT sum_price, avg_price
+FROM get_avg_prices_by_prod_cats();
+-- в лекции 8 груп
+
+
+SELECT
+	sum_price AS sum_of,
+	avg_price AS in_avg
+FROM get_avg_prices_by_prod_cats();
+
+DROP FUNCTION get_avg_prices_by_prod_cats;
+
+-- возврат набора двух значений: среднее и сумму
+CREATE OR REPLACE FUNCTION get_avg_prices_by_prod_cats(OUT sum_price real, OUT avg_price float8) AS
+$$
+	SELECT SUM(unit_price), AVG(unit_price)
+	FROM products
+	GROUP BY category_id
+$$ LANGUAGE SQL;
+
+SELECT sum_price, avg_price
+FROM get_avg_prices_by_prod_cats();
+
+
+DROP FUNCTION get_avg_prices_by_prod_cats;
+
+CREATE OR REPLACE FUNCTION get_avg_prices_by_prod_cats()
+	RETURNS SETOF RECORD AS
+$$
+	SELECT SUM(unit_price), AVG(unit_price)
+	FROM products
+	GROUP BY category_id
+$$ LANGUAGE SQL;
+
+-- эти способы не подойдут!
+SELECT sum_price
+FROM get_avg_prices_by_prod_cats();
+SELECT sum_price, avg_price
+FROM get_avg_prices_by_prod_cats();
+SELECT
+	sum_price AS sum_of,
+	avg_price AS in_avg
+FROM get_avg_prices_by_prod_cats();
+SELECT * FROM get_avg_prices_by_prod_cats();
+-- возможент только такой вариант
+SELECT * FROM get_avg_prices_by_prod_cats() AS (sum_price real, avg_price float8);
+
+
+-- RETURNS TABLE
+CREATE OR REPLACE FUNCTION get_customers_by_country(IN customer_country varchar)
+	RETURNS TABLE(char_code char, company_name varchar) AS
+$$
+	SELECT customer_id, company_name
+	FROM customers
+	WHERE country = customer_country
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_customers_by_country('USA');
+-- в лекции 13 записей
+
+SELECT company_name FROM get_customers_by_country('USA');
+SELECT char_code FROM get_customers_by_country('USA');
+
+
+-- SETOF TABLE
+DROP FUNCTION get_customers_by_country;
+
+CREATE OR REPLACE FUNCTION get_customers_by_country(IN customer_country varchar)
+	RETURNS SETOF customers AS
+$$
+	/*
+	SELECT customer_id, company_name
+	FROM customers
+	WHERE country = customer_country
+	*/ -- такой код не будет работать. Только такой:
+	SELECT *
+	FROM customers
+	WHERE country = customer_country
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_customers_by_country('USA');
+SELECT company_name FROM get_customers_by_country('USA');
+SELECT
+	contact_name AS contact,
+	company_name
+FROM get_customers_by_country('USA');

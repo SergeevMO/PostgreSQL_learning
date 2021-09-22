@@ -1,0 +1,20 @@
+-- скалярные функции - те функции, которые возвращают одно значение
+CREATE OR REPLACE FUNCTION get_total_number_of_goods() RETURNS bigint AS
+$$
+	SELECT SUM(units_in_stock)
+	FROM products
+$$ LANGUAGE SQL;
+
+SELECT get_total_number_of_goods() AS total_goods;
+-- 3139; в лекции 3120
+
+
+-- средняя цена по всем продуктам
+CREATE OR REPLACE FUNCTION get_avg_price() RETURNS float8 AS
+$$
+	SELECT AVG(unit_price)
+	FROM products
+$$ LANGUAGE SQL;
+
+SELECT get_avg_price() AS avg_price;
+-- в лекции 28.477051203138

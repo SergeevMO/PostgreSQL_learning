@@ -1,0 +1,25 @@
+SELECT *
+FROM customers;
+
+-- создадим новую таблицу на оcнове имеющейся
+SELECT *
+INTO tmp_customers
+FROM customers;
+
+SELECT *
+FROM tmp_customers;
+
+UPDATE tmp_customers SET region = 'unknown'
+WHERE region IS NULL;
+
+-- поменяем null у region на unknown с помощью функции
+CREATE OR REPLACE FUNCTION fix_customer_region() RETURNS void AS
+$$
+	UPDATE tmp_customers SET region = 'unknown'
+	WHERE region IS NULL
+$$ LANGUAGE SQL;
+
+SELECT fix_customer_region();
+
+SELECT *
+FROM tmp_customers;
