@@ -1,0 +1,46 @@
+CREATE OR REPLACE FUNCTION type_testing(money_val float8) RETURNS void AS
+$$
+BEGIN
+	RAISE NOTICE 'ran %', money_val;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT type_testing(0.5);
+SELECT type_testing(0.5::float4);
+SELECT type_testing(1); -- неявное преобразование
+
+
+
+CREATE OR REPLACE FUNCTION type_testing2(money_val int) RETURNS void AS
+$$
+BEGIN
+	RAISE NOTICE 'ran %', money_val;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT type_testing2(1);
+SELECT type_testing2(0.5); -- ошибка
+SELECT type_testing2(0.5::int); -- преобразует к ближайшему верхнему числу. В данном случае к 1.
+SELECT type_testing2(0.4::int); -- к 0
+SELECT type_testing2(-0.4::int); -- к 0
+SELECT type_testing2(-0.6::int); -- к -1
+SELECT type_testing2(CAST(-0.6 AS int)); -- к -1
+
+SELECT type_testing2('1.5'); -- не может преобразовать текст в число
+SELECT type_testing2(CAST('1.5' AS int)); -- не может преобразовать текст в целое число
+SELECT type_testing2(CAST('1.5'::numeric AS int)); -- предварительно преобразовывает в numeric, а затем в целое число (к 2)
+
+SELECT type_testing2('1'); -- преобразовывает текст в целое число
+SELECT type_testing2(CAST('1' AS int)); -- не может преобразовать текст в целое число
+
+-- запись
+SELECT 50! AS big_factorial;
+-- эквивалентна
+SELECT CAST(50 AS int8)! AS big_factorial;
+
+-- работа операторов
+SELECT 'abc' || 1; -- в данном случае 1 интерпретируется как объект с типом unknown, который подвергается неявному преобразованию
+-- сравнение 
+SELECT ' 10 ' = 10; -- текст преобразуется к числу, убирая пробелы
+
+

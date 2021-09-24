@@ -1,0 +1,79 @@
+DROP FUNCTION IF EXISTS get_season;
+CREATE OR REPLACE FUNCTION get_season(month_number int) RETURNS text AS
+$$
+DECLARE
+	season text;
+BEGIN
+	IF month_number NOT BETWEEN 1 AND 12 THEN
+		RAISE EXCEPTION 'Не действительный номер месяца. Вы передали: (%)', month_number
+		USING HINT = 'Номер должен быть в промежутке от 1 до 12',
+		ERRCODE = 12882;
+	END IF;
+	
+	IF month_number BETWEEN 3 AND 5 THEN season = 'весна';
+	ELSIF month_number BETWEEN 6 AND 8 THEN season = 'лето';
+	ELSIF month_number BETWEEN 9 AND 11 THEN season = 'осень';
+	ELSIF month_number IN (12, 1, 2) THEN season = 'зима';
+	ELSE season = 'неизвестно';
+	END IF;
+	
+	RETURN season;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_season(12);
+SELECT get_season(15);
+
+
+-- обработка ошибки
+CREATE OR REPLACE FUNCTION get_season_caller(month_number int) RETURNS text AS
+$$
+DECLARE
+	err_ctx text;
+	err_msg text;
+	err_details text;
+	err_code text;
+	err_hint text;
+BEGIN
+	RETURN get_season(month_number);
+EXCEPTION WHEN SQLSTATE '12882' THEN
+	GET STACKED DIAGNOSTICS
+		err_ctx = PG_EXCEPTION_CONTEXT,
+		err_msg = MESSAGE_TEXT,
+		err_details = PG_EXCEPTION_DETAIL,
+		err_code = RETURNED_SQLSTATE,
+		err_hint = PG_EXCEPTION_HINT;
+	RAISE INFO 'Мой собственный обработчик:';
+	RAISE INFO 'Сообщение об ошибке: %', err_msg;
+	RAISE INFO 'Детальная информация по ошибке: %', err_details;
+	RAISE INFO 'Ошибка кода: %', err_code;
+	RAISE INFO 'Контекст ошибки: %', err_ctx;
+	RAISE INFO 'Проблема. Отсутствует спецификация.';
+	RAISE INFO 'Устранение ошибки: %', err_hint;
+	RETURN NULL;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT get_season_caller(15);
+
+
+-- только указание на ошибку
+CREATE OR REPLACE FUNCTION get_season_caller2(month_number int) RETURNS text AS
+$$
+BEGIN
+	RETURN get_season(month_number);
+EXCEPTION
+WHEN SQLSTATE '12885' THEN -- заменён номер ошибки, чтобы она не обрабатывалась здесь
+	RAISE INFO 'Мой собственный обработчик:';
+	RAISE INFO 'Имя ошибки: %', SQLERRM;
+	RAISE INFO 'Детальная информация по ошибке: %', SQLSTATE;
+	RETURN NULL;
+WHEN OTHERS THEN
+	RAISE INFO 'Мой собственный обработчик2:';
+	RAISE INFO 'Имя ошибки: %', SQLERRM;
+	RAISE INFO 'Детальная информация по ошибке: %', SQLSTATE;
+	RETURN NULL;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT get_season_caller2(15);
