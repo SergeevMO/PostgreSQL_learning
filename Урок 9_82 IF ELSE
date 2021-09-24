@@ -25,7 +25,7 @@ BEGIN
 	IF month_number BETWEEN 3 AND 5 THEN season = 'весна';
 	ELSIF month_number BETWEEN 6 AND 8 THEN season = 'лето';
 	ELSIF month_number BETWEEN 9 AND 11 THEN season = 'осень';
-	ELSIF month_number BETWEEN 12 AND 2 THEN season = 'зима';
+	ELSIF month_number IN (12, 1, 2) THEN season = 'зима';
 	ELSE season = 'неизвестно';
 	END IF;
 	
