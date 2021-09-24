@@ -1,0 +1,249 @@
+-- Задание № 1
+/* Создайте функцию, которая делает бэкап таблицы customers (копирует все данные в другую таблицу),
+предварительно стирая таблицу для бэкапа, если такая уже существует
+(чтобы в случае многократного запуска таблица для бэкапа перезатиралась). */
+CREATE OR REPLACE FUNCTION backup_customers() RETURNS void AS
+$$
+	DROP TABLE IF EXISTS backup_customers;
+	
+	CREATE TABLE backup_customers AS
+	SELECT * FROM customers;
+	-- как вариант
+	-- SELECT *
+	-- INTO backup_customers
+	-- FROM customers;
+$$ LANGUAGE SQL;
+
+SELECT backup_customers();
+SELECT * FROM backup_customers;
+
+
+-- Задание № 2
+-- вместо real можно использовать float8
+CREATE OR REPLACE FUNCTION avg_freight_product(OUT avg_freight real) AS
+$$
+	SELECT avg(freight)
+	FROM orders
+$$ LANGUAGE SQL;
+
+SELECT avg_freight_product();
+-- 78.27012, на лекции 78.29650246
+
+-- второй вариант
+CREATE OR REPLACE FUNCTION avg_freight_product2() RETURNS real AS
+$$
+	SELECT avg(freight)
+	FROM orders
+$$ LANGUAGE SQL;
+
+SELECT avg_freight_product2();
+
+
+-- Задание 3
+-- вариант 1
+CREATE OR REPLACE FUNCTION random_boundaries(min_n int, max_n int) RETURNS SETOF int AS
+$$
+	SELECT floor(min_n + (max_n - min_n + 1) * random())
+$$ LANGUAGE SQL;
+
+SELECT random_boundaries(1, 5)
+FROM generate_series(1, 10);
+
+--вариант 2
+CREATE OR REPLACE FUNCTION random_boundaries2(min_n int, max_n int, OUT rand int) AS
+$$
+	SELECT floor(min_n + (max_n - min_n + 1) * random())
+$$ LANGUAGE SQL;
+
+SELECT random_boundaries2(1, 5)
+FROM generate_series(1, 10);
+
+-- вариант 3
+CREATE OR REPLACE FUNCTION random_boundaries3(min_n int, max_n int) RETURNS int AS
+$$
+BEGIN
+	RETURN floor(min_n + (max_n - min_n + 1) * random());
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT random_boundaries3(1, 5)
+FROM generate_series(1, 10);
+
+
+-- Задание № 4
+-- в employees отсутствует столбец salary
+-- Создать функцию, которая возвращает самый лёгкий и самый тяжёлый груз, отправленный в заданную страну
+SELECT freight FROM orders
+WHERE ship_country = 'Brazil'
+ORDER BY freight;
+
+-- вариант 1
+CREATE OR REPLACE FUNCTION boundaries_freight(IN country_ship varchar, OUT min_freight real, OUT max_freight real) AS
+$$
+	SELECT MIN(o.freight), MAX(o.freight)
+	FROM orders AS o
+	WHERE ship_country = country_ship;
+$$ LANGUAGE SQL;
+
+SELECT * FROM boundaries_freight('Brazil');
+
+-- вариант 2
+CREATE OR REPLACE FUNCTION boundaries_freight2(IN country_ship varchar, OUT min_freight real, OUT max_freight real) RETURNS SETOF record AS
+$$
+	SELECT MIN(o.freight), MAX(o.freight)
+	FROM orders AS o
+	WHERE ship_country = country_ship;
+$$ LANGUAGE SQL;
+
+SELECT * FROM boundaries_freight2('Brazil');
+
+
+-- Задание № 5
+-- Создать функцию, которая корректирует массу на заданный процент, но не корректирует её,
+-- если её уровень превышает заданный уровень, при этом верхний уровень массы по умолчанию равен 700,
+-- а процент коррекции равен 15%. 
+DROP TABLE c_orders;
+CREATE TABLE c_orders AS
+SELECT * FROM orders;
+
+SELECT order_id, freight FROM c_orders
+ORDER BY freight DESC;
+
+CREATE OR REPLACE FUNCTION correction_freight(upper_boundary numeric DEFAULT 700, cor_per float4 DEFAULT 15) RETURNS void AS
+$$
+	UPDATE c_orders 
+	SET freight = freight * (1 + cor_per / 100)
+	WHERE freight > upper_boundary;
+$$ LANGUAGE SQL;
+
+SELECT correction_freight();
+SELECT order_id, freight FROM c_orders
+ORDER BY freight DESC;
+
+
+-- Задание № 6
+-- Модифицировать функцию, корректирующую массу таким образом, чтобы в результате коррекции,
+-- она так же выводила бы изменённые записи.
+DROP FUNCTION IF EXISTS correction_freight;
+CREATE OR REPLACE FUNCTION correction_freight(upper_boundary numeric DEFAULT 700, cor_per float4 DEFAULT 15) RETURNS SETOF c_orders AS
+$$
+	UPDATE c_orders 
+	SET freight = freight * (1 + cor_per / 100)
+	WHERE freight > upper_boundary
+	RETURNING *;
+$$ LANGUAGE SQL;
+
+SELECT * FROM correction_freight();
+
+
+-- Задание № 7
+-- Модифицировать предыдущую функцию так, чтобы она возвращала только колонки order_id, customer_id, order_date, freight
+DROP FUNCTION IF EXISTS correction_freight;
+CREATE OR REPLACE FUNCTION correction_freight(upper_boundary numeric DEFAULT 700, cor_per float4 DEFAULT 15)
+	RETURNS TABLE(order_id smallint, customer_id character, order_date date, freight real) AS
+$$
+	UPDATE c_orders 
+	SET freight = freight * (1 + cor_per / 100)
+	WHERE freight > upper_boundary
+	RETURNING order_id, customer_id, order_date, freight;
+$$ LANGUAGE SQL;
+
+SELECT * FROM correction_freight();
+
+
+-- Задание № 8
+-- вариант 1
+SELECT * FROM orders;
+CREATE OR REPLACE FUNCTION freight_by_method_ship(method_ship int) RETURNS SETOF orders AS
+$$
+	SELECT *
+	FROM orders
+	WHERE freight < (
+		SELECT (0.7 * MAX(freight) + AVG(freight)) / 2
+		FROM orders
+		WHERE ship_via = method_ship);
+$$ LANGUAGE SQL;
+
+SELECT * FROM freight_by_method_ship(1);
+SELECT COUNT(*) FROM freight_by_method_ship(1);
+
+-- вариант 2
+CREATE OR REPLACE FUNCTION freight_by_method_ship2(method_ship int) RETURNS SETOF orders AS
+$$
+DECLARE
+	average numeric;
+	maximum numeric;
+	middle numeric;
+BEGIN
+	SELECT
+		MAX(freight) INTO maximum -- присваивание вычисленного максимального значения переменной maximum
+	FROM orders
+	WHERE ship_via = method_ship;
+	
+	SELECT
+		AVG(freight) INTO average
+	FROM orders
+	WHERE ship_via = method_ship;
+	
+	maximum = maximum * 0.7;
+	middle = (maximum + average) / 2;
+	
+	RETURN QUERY
+	SELECT *
+	FROM orders
+	WHERE freight < middle;
+END;
+$$ LANGUAGE plpgSQL;
+
+SELECT * FROM freight_by_method_ship2(1);
+SELECT COUNT(*) FROM freight_by_method_ship2(1);
+-- в лекции 754
+
+
+
+-- Задание № 9
+-- вариант 1
+DROP FUNCTION pay_level;
+CREATE OR REPLACE FUNCTION pay_level(current_pay decimal,
+									 max_pay decimal DEFAULT 80.0,
+									 min_pay decimal DEFAULT 30.0,
+									 coef_growth float4 DEFAULT 20.0) RETURNS SETOF bool AS
+$$
+	SELECT CASE
+			WHEN current_pay >= min_pay OR current_pay >= max_pay THEN FALSE
+			ELSE	CASE
+						WHEN current_pay * (1 + coef_growth / 100) > max_pay AND
+							 current_pay * (1 + coef_growth / 100) > min_pay THEN FALSE
+						ELSE TRUE
+					END
+			END
+$$ LANGUAGE SQL;
+
+SELECT pay_level(40);
+SELECT pay_level(79, 81, 80);
+SELECT pay_level(79, 80, 81);
+SELECT pay_level(79, 95, 80);
+SELECT pay_level(79, 80, 95);
+
+-- вариант 2
+DROP FUNCTION pay_level2;
+CREATE OR REPLACE FUNCTION pay_level2(current_pay decimal,
+									 max_pay decimal DEFAULT 80.0,
+									 min_pay decimal DEFAULT 30.0,
+									 coef_growth float4 DEFAULT 20.0) RETURNS bool AS
+$$
+BEGIN
+	IF    current_pay >= min_pay OR current_pay >= max_pay THEN RETURN FALSE;
+	ELSIF current_pay * (1 + coef_growth / 100) > max_pay  AND 
+		  current_pay * (1 + coef_growth / 100) > min_pay  THEN RETURN FALSE;
+	ELSE RETURN TRUE;
+	END IF;
+END;
+$$ LANGUAGE plpgSQL;
+
+SELECT pay_level2(40);
+SELECT pay_level2(79, 81, 80);
+SELECT pay_level2(79, 80, 81);
+SELECT pay_level2(79, 95, 80);
+SELECT pay_level2(79, 80, 95);
+
