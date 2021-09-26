@@ -1,0 +1,50 @@
+-- сложный индекс
+-- используем регулярные выражения
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%';
+-- beatmap index
+
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE reason LIKE '%bc%';
+-- последовательный поиск
+
+-- воспользуемся специальным индексом GIN (ООП), основанный на модуле pg_trgm,
+-- который предоставляет функции и операторы схожести операторов для буквенно-цифровых строк на основе триграмм (триграфов) - 
+-- группа трёх последовательных символов, взятых из строки
+
+-- проверим, установлено ли это расширение
+SELECT * FROM pg_available_extensions
+WHERE name = 'pg_trgm';
+-- ячека поля installed_version пуста, поэтому установим это расширение
+CREATE EXTENSION pg_trgm;
+
+-- построим ООП-индекс с указанием класса операторов gin_trgm_ops для метода ООП
+CREATE INDEX trgm_idx_perf_test_reason ON perf_test USING GIN (reason gin_trgm_ops);
+
+EXPLAIN ANALYZE
+SELECT *
+FROM perf_test
+WHERE reason LIKE '%bc%';
+-- всё равно последовательный поиск
+-- такой вид индексирования не даёт гарантии, что планировщик выберит именно индексный поиск, а не последовательный.
+-- если записей очень много, то индексный поиск не используется
+
+SELECT COUNT(*)
+FROM perf_test
+WHERE reason LIKE '%bc%';
+-- 1.145.654 записей из 10.000.000  (больше 10%)
+
+EXPLAIN ANALYZE
+SELECT *
+FROM perf_test
+WHERE reason LIKE '%dfe%';
+-- beatmap heap index
+
+SELECT COUNT(*)
+FROM perf_test
+WHERE reason LIKE '%dfe%';
+-- 73.113 записей из 10.000.000 (меньше 1%)

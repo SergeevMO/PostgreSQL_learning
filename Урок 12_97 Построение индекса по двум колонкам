@@ -1,0 +1,118 @@
+SELECT amname FROM pg_am;
+
+TRUNCATE TABLE perf_test;
+DROP TABLE perf_test;
+
+CREATE TABLE perf_test(
+	t_id int,
+	reason text COLLATE "C", -- изменяет правила сортировки и сравнения по умолчанию на побайтовое сравнение символов
+	annotation text COLLATE "C"
+);
+-- по умолчанию COLLATE привязан к кириллице при создании базы данных. Теперь правило будет применяться к латинским символам.
+
+-- вставка данных путём генерации значений
+INSERT INTO perf_test
+SELECT s.t_id, md5(CAST(random() AS text)), null
+FROM generate_series(1, 10000000) AS s(t_id)
+ORDER BY random();
+
+UPDATE perf_test
+SET annotation = UPPER(md5(CAST(random() AS text)));
+
+SELECT * FROM perf_test
+LIMIT 10;
+
+SELECT *
+FROM perf_test
+WHERE t_id = 3700000;
+
+-- просмотрим план
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE t_id = 3700000;
+-- последовательное сканирование 2 мин
+
+-- построим индекс типа сбалансированного дерева
+DROP INDEX idx_perf_test_id;
+CREATE INDEX idx_perf_test_id ON perf_test (t_id);
+
+-- просмотрим план
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE t_id = 3700000;
+-- индексное сканирование 127 мс
+
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%' AND annotation LIKE 'AB%';
+
+-- объяснить план
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%' AND annotation LIKE 'AB%';
+-- последовательное сканирование  ->  Parallel Seq Scan on perf_test  (cost=0.00..269291.00 rows=4 width=70)
+
+-- объяснить и проанализировать реальную последовательность действий
+EXPLAIN ANALYZE
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%' AND annotation LIKE 'AB%';
+
+-- если провести анализ до запуска выборок, то они будут выполняться быстрее
+-- ANALYZE perf_test;
+-- но этот процесс мог быть запущен неявно
+
+-- индекс (сбалансированное дерево) по двум колонкам
+DROP INDEX idx_perf_test_reason_annotation;
+CREATE INDEX idx_perf_test_reason_annotation ON perf_test(reason, annotation);
+
+-- объяснить план выборки после индексирования
+EXPLAIN 
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%' AND annotation LIKE 'AB%';
+-- индексное сканирование
+
+-- индексирование по двум колонкам предоставляет возможность индексного поиска по первой колонке
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%';
+
+-- объяснить план выборки после индексирования
+EXPLAIN 
+SELECT *
+FROM perf_test
+WHERE reason LIKE 'bc%';
+--  в данном случае используется разновидность индексного поиска bitmap heap
+
+-- но по второй колонке будет производится последовательный поиск, а не индексный
+EXPLAIN 
+SELECT *
+FROM perf_test
+WHERE annotation LIKE 'AB%';
+-- при необходимости можно дополнительно построить индекс для второго столбца
+
+-- можно воспользоваться простым построением индекса
+DROP INDEX idx_perf_test_annotation;
+CREATE INDEX idx_perf_test_annotation ON perf_test(annotation);
+
+-- но это не поможет в случае поиска по нижнему регистру букв с предварительным приведением к этому формату значений столбца
+SELECT *
+FROM perf_test
+WHERE LOWER(annotation) LIKE 'ab%';
+-- будет использоваться последовательный поиск
+-- поэтому придётся строить отдельный индекс для каждой функции
+
+-- например построим индекс по выражению для предыдущего случая
+DROP INDEX idx_perf_test_annotation_lower;
+CREATE INDEX idx_perf_test_annotation_lower ON perf_test(LOWER(annotation));
+
+EXPLAIN
+SELECT *
+FROM perf_test
+WHERE LOWER(annotation) LIKE 'ab%';
+-- используется разновидность индексного поиска bitmap heap
+
