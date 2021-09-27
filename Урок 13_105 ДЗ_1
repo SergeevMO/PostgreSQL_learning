@@ -1,0 +1,39 @@
+-- Задание 1
+-- Создать функцию, которая вычисляет средний фрахт по заданным странам (функция принимает список стран).
+DROP FUNCTION avg_freight_countries;
+SELECT * FROM orders;
+
+CREATE OR REPLACE FUNCTION avg_freight_countries(VARIADIC countries_ship varchar[])
+					RETURNS TABLE(country varchar, avg_frieght float8, count_orders int8) AS
+$$
+BEGIN
+	FOR country IN 1..array_upper(countries_ship, 1)
+	LOOP
+		RETURN QUERY
+		SELECT ship_country, avg(freight), count(*)
+		FROM orders
+		WHERE ship_country = countries_ship[country] AND freight IS NOT NULL
+		GROUP BY ship_country;
+	END LOOP;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT * FROM avg_freight_countries('France', 'Germany', 'Brazil', 'USA', 'UK');
+-- эквивалентный запрос через передачу массива:
+SELECT * FROM avg_freight_countries(VARIADIC ARRAY['France', 'Germany', 'Brazil', 'USA', 'UK']);
+
+
+
+-- несколько другая задача
+CREATE OR REPLACE FUNCTION get_avg_freight_by_countries(VARIADIC countries text[]) RETURNS float8 AS
+$$
+	SELECT avg(freight)
+	FROM orders
+	WHERE ship_country = ANY(countries);
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_avg_freight_by_countries('USA', 'UK');
+SELECT * FROM get_avg_freight_by_countries('UK');
+
+-- эквивалентный запрос, в который передаётся массив
+SELECT * FROM get_avg_freight_by_countries(VARIADIC ARRAY['USA', 'UK']);

@@ -1,0 +1,45 @@
+-- Операторы сравнения
+SELECT ARRAY[1, 2, 3, 4] = ARRAY[1, 2, 3, 4];
+-- возвращает TRUE
+
+SELECT ARRAY[1, 2, 4, 3] = ARRAY[1, 2, 3, 4];
+-- возвращает FALSE
+
+SELECT ARRAY[1, 2, 4, 3] > ARRAY[1, 2, 3, 4];
+-- возвращает TRUE
+
+SELECT ARRAY[1, 2, 4, 3] > ARRAY[1, 2, 5, 4];
+-- возвращает FALSE
+
+SELECT ARRAY[1, 2, 3, 4] > ARRAY[1, 2, 3, 4];
+-- возвращает FALSE
+
+
+-- операторы включения
+SELECT ARRAY[1, 2, 3, 4] @> ARRAY[1, 2];
+-- возвращает TRUE
+
+SELECT ARRAY[1, 2, 3, 4] @> ARRAY[1, 2, 5];
+-- возвращает FALSE
+
+SELECT ARRAY[1, 2, 3, 4] <@ ARRAY[1, 2];
+-- возвращает FALSE
+
+SELECT ARRAY[1, 2] <@ ARRAY[1, 2, 3, 4];
+-- возвращает TRUE
+
+SELECT ARRAY[1, 2, 5] <@ ARRAY[1, 2, 3, 4];
+-- возвращает FALSE
+
+
+-- операторы пересечения
+SELECT ARRAY[1, 2, 3, 4] && ARRAY[1, 2];
+-- возвращает TRUE
+
+SELECT ARRAY[1, 2, 3, 4] && ARRAY[5, 7];
+-- возвращает FALSE
+
+SELECT *
+FROM chess_game
+WHERE moves && ARRAY['d4'];
+-- аналогично фразе WHERE 'd4' = ANY(moves);

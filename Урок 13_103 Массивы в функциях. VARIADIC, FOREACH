@@ -1,0 +1,26 @@
+CREATE OR REPLACE FUNCTION filter_even(VARIADIC numbers int[]) RETURNS SETOF int AS
+$$
+BEGIN
+	FOR counter IN 1..array_upper(numbers, 1)
+	LOOP
+		CONTINUE WHEN counter % 2 != 0;
+		RETURN NEXT counter;
+	END LOOP;
+END;
+$$ LANGUAGE PLpgSQL;
+
+SELECT * FROM filter_even(1, 2, 3, 4, 5, 6, 7, 8);
+
+-- эквивалентный синтаксис
+CREATE OR REPLACE FUNCTION filter_even2(VARIADIC numbers int[]) RETURNS SETOF int AS
+$$
+DECLARE
+	counter int;
+BEGIN
+	FOREACH counter IN ARRAY numbers
+	LOOP
+		CONTINUE WHEN counter % 2 != 0;
+		RETURN NEXT counter;
+	END LOOP;
+END;
+$$ LANGUAGE PLpgSQL;
