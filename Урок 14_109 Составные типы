@@ -1,0 +1,75 @@
+-- первоначальная функция, возвращающая два значения
+DROP FUNCTION IF EXISTS get_price_boundaries;
+CREATE OR REPLACE FUNCTION get_price_boundaries(OUT max_price real, OUT min_price real)
+							RETURNS SETOF record AS
+$$
+	SELECT MAX(unit_price), MIN(unit_price)
+	FROM products
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_price_boundaries();
+
+DROP FUNCTION IF EXISTS get_price_boundaries;
+
+CREATE TYPE price_bounds AS (
+	max_price real,
+	min_price real
+);
+
+-- создадим новую функцию, использующую сотавной тип данных
+CREATE OR REPLACE FUNCTION get_price_boundaries() RETURNS SETOF price_bounds AS
+$$
+	SELECT MAX(unit_price), MIN(unit_price)
+	FROM products
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_price_boundaries();
+
+
+
+-- пример использования составного типа для комплексных чисел
+CREATE TYPE complex AS (
+	r float8,
+	i float8
+);
+
+CREATE TABLE math_calcs (
+	math_id serial,
+	val complex
+);
+
+INSERT INTO math_calcs(val)
+VALUES
+(ROW(3.0, 4.0)),
+(ROW(2.0, 1.0));
+
+SELECT * FROM math_calcs;
+
+-- чтобы обратиться к отдельному полю составного типа данных, используют следующую конструкцию:
+SELECT (math_calcs.val).r FROM math_calcs;
+-- выводит действительные части комплексного числа
+
+-- чтобы вывести по отдельности поля составного типа, используют такую конструкцию
+SELECT (math_calcs.val). * FROM math_calcs;
+
+
+-- обновим значения составного типа
+UPDATE math_calcs
+SET val = ROW(5.0, 4.0)
+WHERE math_id = 1;
+
+SELECT * FROM math_calcs;
+
+-- только одно поле составного типа:
+UPDATE math_calcs
+SET val.r = 7.0
+WHERE math_id = 1;
+
+SELECT * FROM math_calcs;
+
+-- только одно поле составного типа c математическими выражениями:
+UPDATE math_calcs
+SET val.r = (val).r + 1.0
+WHERE math_id = 1;
+
+SELECT * FROM math_calcs;

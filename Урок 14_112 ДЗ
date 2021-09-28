@@ -1,0 +1,45 @@
+-- задание № 1
+DROP FUNCTION get_freight_boundaries_by_city3;
+DROP TYPE freight_bound;
+
+CREATE TYPE freight_bound AS (
+	max_freight real,
+	min_freight real
+);
+
+CREATE OR REPLACE FUNCTION get_freight_boundaries_by_city3(
+	s_city varchar) RETURNS SETOF freight_bound AS
+$$
+	SELECT MIN(freight) AS min_freight,
+	   	   MAX(freight) AS max_freight
+  	FROM orders
+	WHERE ship_city = s_city
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_freight_boundaries_by_city3('London');
+
+
+
+-- задание № 2
+CREATE TYPE rank_army AS ENUM
+('Private', 'Corporal', 'Sergeant');
+
+SELECT enum_range(null::rank_army);
+
+ALTER TYPE rank_army
+ADD VALUE 'Major' AFTER 'Sergeant';
+
+CREATE TABLE personal_staff (
+	person_id int GENERATED ALWAYS AS IDENTITY NOT NULL,
+	first_name text,
+	last_name text,
+	person_rank rank_army
+);
+
+INSERT INTO personal_staff(first_name, last_name, person_rank)
+VALUES
+('Oleg', 'Popov', 'Sergeant'),
+('Vlad', 'Kudryash', 'Major'),
+('Linda', 'Zaic', 'Private');
+
+SELECT * FROM personal_staff;
