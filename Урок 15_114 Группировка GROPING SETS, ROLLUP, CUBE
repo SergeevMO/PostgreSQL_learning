@@ -1,0 +1,71 @@
+SELECT *
+FROM products;
+
+-- первый запрос (группировка по одному столбцу)
+SELECT supplier_id, SUM(units_in_stock)
+FROM products
+GROUP BY supplier_id
+ORDER BY supplier_id;
+
+-- второй запрос (группировка по двум столбцам)
+SELECT supplier_id, category_id, SUM(units_in_stock)
+FROM products
+GROUP BY supplier_id, category_id
+ORDER BY supplier_id;
+
+-- третий запрос с GROUPING SETS
+SELECT  supplier_id,
+		category_id,
+		SUM(units_in_stock)
+FROM products
+GROUP BY GROUPING SETS ((supplier_id), (supplier_id, category_id))
+ORDER BY supplier_id, category_id NULLS FIRST;
+-- объединяет первый и второй запросы
+
+-- дополнительный запрос 1
+SELECT  supplier_id,
+		SUM(units_in_stock)
+FROM products
+GROUP BY ROLLUP(supplier_id)
+ORDER BY supplier_id NULLS FIRST;
+-- то же самое, что и первый запрос, но добавляется общая сумма
+
+-- четвёртый запрос с ROLLUP
+SELECT  supplier_id,
+		category_id,
+		SUM(units_in_stock)
+FROM products
+GROUP BY ROLLUP (supplier_id, category_id)
+ORDER BY supplier_id, category_id NULLS FIRST;
+-- то же самое, что и третий запрос, но с итоговой суммой
+
+-- дополнительный запрос 2
+SELECT  supplier_id,
+		category_id,
+		reorder_level,
+		SUM(units_in_stock)
+FROM products
+GROUP BY ROLLUP (supplier_id, category_id, reorder_level)
+ORDER BY supplier_id, category_id, reorder_level NULLS FIRST;
+-- ещё добавляются подытоги по последнему столбцу
+
+-- пятый запрос с CUBE
+SELECT  supplier_id,
+		category_id,
+		SUM(units_in_stock)
+FROM products
+GROUP BY CUBE (supplier_id, category_id)
+ORDER BY supplier_id, category_id NULLS FIRST;
+-- то же что и четвёртый запрос, но (после строки null, null, null)
+-- добавляется группировка по category_id
+
+-- дополнительный запрос 3
+SELECT  supplier_id,
+		category_id,
+		reorder_level,
+		SUM(units_in_stock)
+FROM products
+GROUP BY CUBE (supplier_id, category_id, reorder_level)
+ORDER BY supplier_id, category_id, reorder_level NULLS FIRST;
+-- то же что и четвёртый запрос, но добавляется группировка по
+-- (supplier_id, reorder_level), (category_id, reorder_level), category_id и reorder_level

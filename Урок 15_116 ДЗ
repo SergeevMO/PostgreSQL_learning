@@ -1,0 +1,45 @@
+-- Задание № 1
+/* 
+	Вывести сумму продаж (цена * кол-во) по каждому сотруднику с подсчётом полного итога
+(полной суммы по всем сотрудникам) отсортировав по сумме продаж (по убыванию).
+*/
+SELECT
+	CONCAT(e.last_name, ' ', e.first_name) AS name_employee,
+	SUM(od.unit_price * od.quantity) AS summary_sale
+FROM employees e
+INNER JOIN orders o ON e.employee_id = o.employee_id
+INNER JOIN order_details od ON o.order_id = od.order_id
+GROUP BY ROLLUP (name_employee)
+ORDER BY summary_sale DESC;
+-- 9 сотрудников и полная сумма 1350968.590441227
+
+-- Задание № 2
+/*
+	Вывести отчёт, показывающий сумму продаж по сотрудникам и странам отгрузки с подытогами
+по сотрудникам и общим итогом.
+*/
+SELECT
+	CONCAT(e.last_name, ' ', e.first_name) AS name_employee,
+	o.ship_country,
+	SUM(od.unit_price * od.quantity) AS summary_sale
+FROM employees e
+INNER JOIN orders o ON e.employee_id = o.employee_id
+INNER JOIN order_details od ON o.order_id = od.order_id
+GROUP BY ROLLUP (name_employee, o.ship_country)
+ORDER BY name_employee, ship_country NULLS LAST;
+
+
+-- Задание № 3
+/*
+	Вывести отчёт показывающий сумму продаж по сотрудникам, странам отгрузки, сотрудникам
+и странам отгрузки с подытогами по сотрудникам и общим итогом.
+*/
+SELECT
+	CONCAT(e.last_name, ' ', e.first_name) AS name_employee,
+	o.ship_country,
+	SUM(od.unit_price * od.quantity) AS summary_sale
+FROM employees e
+INNER JOIN orders o ON e.employee_id = o.employee_id
+INNER JOIN order_details od ON o.order_id = od.order_id
+GROUP BY CUBE (name_employee, o.ship_country)
+ORDER BY name_employee, ship_country NULLS LAST;
