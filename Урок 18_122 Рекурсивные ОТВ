@@ -1,0 +1,51 @@
+DROP TABLE IF EXISTS employee1;
+
+CREATE TABLE employee1 (
+	employee_id int PRIMARY KEY,
+	first_name varchar NOT NULL,
+	last_name varchar NOT NULL,
+	manager_id int,
+	FOREIGN KEY (manager_id) REFERENCES employee1 (employee_id) ON DELETE CASCADE
+);
+
+INSERT INTO employee1 (
+	employee_id,
+	first_name,
+	last_name,
+	manager_id
+)
+VALUES
+	(1, 'Windy', 'Hays', NULL),
+	(2, 'Ava', 'Christensen', 1),
+	(3, 'Hassan', 'Conner', 1), 
+	(4, 'Anna', 'Reeves', 2),
+	(5, 'Sau', 'Norman', 2),
+	(6, 'Kelsie', 'Hays', 3),
+	(7, 'Tory', 'Goff', 3),
+	(8, 'Salley', 'Lester', 3);
+	
+SELECT
+	e1.first_name || ' ' || e1.last_name AS employee,
+	m1.first_name || ' ' || m1.last_name AS manager
+FROM employee1 AS e1
+LEFT JOIN employee1 AS m1 ON e1.manager_id = m1.employee_id
+ORDER BY manager NULLS FIRST;
+
+
+WITH RECURSIVE submission(sub_line, employee_id) AS -- имя таблицы(имя первой колонки, имя второй колонки)
+(
+	-- отправная часть - формирует первую строку таблицы submission
+	SELECT
+		last_name, -- войдёт в первую колонку
+		employee_id -- войдёт во вторую колонку
+	FROM employee1
+	WHERE manager_id IS NULL
+	-- рекурсивная часть - формирует остальные строки таблицы submission
+	UNION ALL
+	SELECT
+		sub_line || ' -> ' || e1.last_name, -- войдёт в первую колонку
+		e1.employee_id -- войдёт во вторую колонку
+	FROM employee1 AS e1
+	INNER JOIN submission AS s ON e1.manager_id = s.employee_id
+)
+SELECT * FROM submission;
