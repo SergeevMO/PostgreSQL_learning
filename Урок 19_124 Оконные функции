@@ -1,0 +1,67 @@
+-- использование GROUP BY.
+SELECT category_id, AVG(unit_price) AS avg_price
+FROM products
+GROUP BY category_id
+LIMIT 5;
+
+-- использование оконной функции.
+SELECT
+	category_id,
+	category_name,
+	product_name,
+	unit_price,
+	AVG(unit_price) OVER (PARTITION BY category_id) AS avg_price
+FROM products
+INNER JOIN categories USING (category_id);
+
+
+-- необходимо подсчитать нарастающий итог.
+SELECT
+	order_id,
+	order_date,
+	product_id,
+	customer_id,
+	unit_price AS sub_total,
+	SUM(unit_price) OVER (PARTITION BY order_id ORDER BY product_id) AS sale_sum
+FROM orders
+INNER JOIN order_details USING(order_id)
+ORDER BY order_id;
+-- данные отличаются от лекционных - здесь больше строк.
+
+
+-- нарастающий итог по всем заказам.
+-- в данном варианте нарастающий итог есть, но он не сквозной:
+SELECT
+	order_id,
+	order_date,
+	product_id,
+	customer_id,
+	unit_price AS sub_total,
+	SUM(unit_price) OVER (ORDER BY order_id) AS sale_sum
+FROM orders
+INNER JOIN order_details USING(order_id)
+ORDER BY order_id;
+-- данные отличаются от лекционных - здесь больше строк
+
+-- для решения воспользуемся генерированием id:
+SELECT
+	subq.row_id,
+	subq.order_id,
+	subq.order_date,
+	subq.product_id,
+	subq.customer_id,
+	subq.unit_price AS sub_total,
+	SUM(subq.unit_price) OVER (ORDER BY subq.row_id) AS sale_sum
+FROM (
+	SELECT
+		o.order_id,
+		o.order_date,
+		od.product_id,
+		o.customer_id,
+		od.unit_price,
+		row_number() OVER () AS row_id
+	FROM orders AS o
+	INNER JOIN order_details AS od USING(order_id)
+) AS subq
+ORDER BY order_id;
+-- 2153 строки

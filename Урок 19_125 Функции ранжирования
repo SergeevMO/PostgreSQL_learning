@@ -1,0 +1,92 @@
+-- если набор уникальный, то RANK работает как ROW_NUMBER.
+SELECT
+	product_name,
+	units_in_stock,
+	RANK() OVER (ORDER BY product_id)
+FROM products;
+
+SELECT
+	product_name,
+	units_in_stock,
+	RANK() OVER()
+FROM products;
+-- выставляет ранг в 1 для всех строк.
+
+SELECT
+	product_name,
+	units_in_stock,
+	RANK() OVER()
+FROM products;
+
+
+-- если набор неуникальный, то RANK выставляет одинаковый ранг, который был присвоен первому элементу и
+-- пропускает номера рангов в количестве повторяющихся до этого строк с одинаковым рангом для следующего элемента.
+SELECT
+	product_name,
+	units_in_stock,
+	RANK() OVER (ORDER BY units_in_stock)
+FROM products;
+
+-- DENSE_RANK также выставляет одинаковый ранг для неуникальных элементов, но для следующего элемента номер увеличивается на единицу.
+SELECT
+	product_name,
+	units_in_stock,
+	DENSE_RANK() OVER (ORDER BY units_in_stock)
+FROM products;
+
+-- использование сложной логики
+SELECT
+	product_name,
+	unit_price,
+	DENSE_RANK() OVER (
+		ORDER BY CASE
+					WHEN unit_price > 80 THEN 1
+					WHEN unit_price > 30 THEN 2
+					WHEN unit_price <= 30 AND unit_price >= 0 THEN 3
+					ELSE NULL
+				END
+	) AS ranking
+FROM products
+ORDER BY unit_price DESC;
+-- для null присваивает ранг 4
+
+-- работа функции LAG
+SELECT
+	product_name,
+	unit_price,
+	LAG(unit_price) OVER (ORDER BY unit_price DESC) AS previous_price
+FROM products
+ORDER BY unit_price DESC;
+-- функция возвращает предыдущее значение параметра
+
+-- просмотр оnличия текущей цены от предыдущей
+SELECT
+	product_name,
+	unit_price,
+	LAG(unit_price) OVER (ORDER BY unit_price DESC) - unit_price AS price_lag
+FROM products
+ORDER BY unit_price DESC;
+
+-- работа функции LEAD
+SELECT
+	product_name,
+	unit_price,
+	LEAD(unit_price) OVER (ORDER BY unit_price) AS consequent_price
+FROM products
+ORDER BY unit_price;
+
+-- просмотр оnличия текущей цены от последующей
+SELECT
+	product_name,
+	unit_price,
+	LEAD(unit_price) OVER (ORDER BY unit_price) - unit_price AS consequent_price
+FROM products
+ORDER BY unit_price;
+
+-- просмотр оnличия текущей цены от последующей через 2
+SELECT
+	product_name,
+	unit_price,
+	LEAD(unit_price, 2) OVER (ORDER BY unit_price) - unit_price AS consequent_price
+FROM products
+ORDER BY unit_price;

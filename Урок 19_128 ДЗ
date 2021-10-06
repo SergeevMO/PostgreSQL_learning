@@ -1,0 +1,33 @@
+-- Задание № 1
+/* Вывести отчёт, показывающий суммы продаж SUM(unit_price*quantity) по сотрудникам и
+сопоставляющий их со средним значением суммы продаж по сотрудникам (AVG по SUM(unit_price*quantity)),
+сортированный по сумме продаж по убыванию.
+*/
+SELECT
+	sub_sum.*,
+	AVG(sum_sale) OVER() AS avg_sale
+FROM (
+	SELECT DISTINCT
+		CONCAT(e.last_name, ' ', e.first_name) AS name_employee,
+		SUM(unit_price*quantity) OVER(PARTITION BY o.employee_id) AS sum_sale
+	FROM employees AS e
+	LEFT JOIN orders AS o ON e.employee_id = o.employee_id
+	LEFT JOIN order_details AS od ON o.order_id = od.order_id
+) AS sub_sum
+ORDER BY sum_sale DESC;
+
+
+-- Задание № 2
+-- Вывести ранг сотрудников по их суммарным продажам, без пропусков. Также вывести имя, фамилию и должность.
+SELECT
+	sub_sum.*,
+	DENSE_RANK() OVER(ORDER BY sum_sale DESC) AS rank_employee
+FROM (
+	SELECT DISTINCT
+		CONCAT(e.last_name, ' ', e.first_name) AS name_employee,
+		e.title,
+		SUM(unit_price*quantity) OVER(PARTITION BY o.employee_id) AS sum_sale
+	FROM employees AS e
+	INNER JOIN orders AS o ON e.employee_id = o.employee_id
+	INNER JOIN order_details AS od ON o.order_id = od.order_id
+) AS sub_sum;
