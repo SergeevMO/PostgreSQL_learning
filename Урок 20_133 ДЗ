@@ -1,0 +1,74 @@
+-- Задание № 1
+/*
+В рамках транзакции с уровнем изоляции Repeatable Read выполнить следующие операции:
+- заархивировать (SELECT INTO или CREATE TABLE AS) заказчиков, которые сделали покупок менее чем на 2000 у.е.
+- удалить из таблицы заказчиков всех заказчиков, которые были предварительно заархивированы
+(подсказка: для этого придётся удалить данные из связанных таблиц)
+
+*/
+DROP TABLE customer_2000;
+
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+CREATE TABLE customer_2000 AS
+(
+	SELECT cu.customer_id, cu.company_name, SUM(od.unit_price * od.quantity) AS summ_orders
+	FROM customers AS cu
+	INNER JOIN orders AS o ON cu.customer_id = o.customer_id
+	INNER JOIN order_details AS od ON o.order_id = od.order_id
+	GROUP BY cu.company_name, cu.customer_id
+	HAVING SUM(od.unit_price * od.quantity) < 2000
+	ORDER BY summ_orders DESC
+
+);
+-- 16 заказчиков
+
+SAVEPOINT create_table;
+
+DELETE FROM order_details AS od
+WHERE od.order_id IN (	SELECT order_id
+				  		FROM orders
+				  		WHERE customer_id IN (SELECT customer_id FROM customer_2000)
+					 );
+DELETE FROM orders
+WHERE customer_id IN (SELECT customer_id FROM customer_2000);
+DELETE FROM customers CASCADE
+WHERE customer_id IN (SELECT customer_id FROM customer_2000);
+
+ROLLBACK TO create_table;
+
+COMMIT;
+-- проверяем созданную таблицу
+SELECT * FROM customer_2000;
+
+
+-- Задание № 2
+/*
+В рамках транзакции выполнить следующие операции:
+- заархивировать все продукты, снятые с продажи (см. колонку discontinued)
+- поставить savepoint после архивации
+- удалить из таблицы продуктов все продукты, которые были заархивированы
+- откатиться к savepoint
+- закоммитить тразнакцию
+*/
+BEGIN TRANSACTION;
+
+CREATE TABLE discontinued_product AS
+(
+	SELECT *
+	FROM products
+	WHERE discontinued = 1
+);
+
+SAVEPOINT create_table;
+DELETE FROM order_details
+WHERE product_id IN (SELECT product_id FROM discontinued_product);
+DELETE FROM products
+WHERE product_id IN (SELECT product_id FROM discontinued_product);
+
+ROLLBACK TO create_table;
+
+COMMIT;
+
+SELECT * FROM discontinued_product;
+SELECT * FROM products;
