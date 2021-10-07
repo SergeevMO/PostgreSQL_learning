@@ -1,0 +1,99 @@
+-- Задание № 1
+/*
+Автоматизировать логирование времени последнего изменения в таблице products.
+Добавить в products соответствующую колонку и реализовать построчный триггер.
+*/
+ALTER TABLE products
+ADD COLUMN time_change timestamp;
+
+CREATE OR REPLACE FUNCTION create_time_change_products() RETURNS trigger AS
+$$
+BEGIN
+	NEW.time_change = now();
+	RETURN NEW;
+END;
+$$ LANGUAGE PLpgSQL;
+
+CREATE TRIGGER change_products BEFORE UPDATE OR INSERT ON products
+	FOR EACH ROW EXECUTE PROCEDURE create_time_change_products();
+
+-- проверка
+INSERT INTO products
+VALUES (80, 'Russian Mozzarella', 7, 4, '200g per package', 50, 20, 0, 0, 0);
+
+SELECT * FROM products
+ORDER BY product_id DESC;
+
+ALTER TABLE products
+DISABLE TRIGGER change_products;
+
+
+
+-- Задание № 2
+/*
+Автоматизировать аудит операций в таблице order_details. Создайте отдельную таблицу для аудита,
+добавьте туда колонки для хранения наименования операций, имени пользователя и временного штампа.
+Реализуйте триггеры на утверждения.
+*/
+SELECT * FROM order_details
+ORDER BY order_id DESC;
+
+CREATE TABLE audit_order_details 
+(
+	op char(1),
+	user_name text,
+	time_change timestamp,
+	order_id smallint NOT NULL,
+	product_id smallint NOT NULL,
+	unit_price real CHECK(unit_price >= 0),
+	quantity smallint CHECK(quantity >= 0),
+	discont real
+);
+
+CREATE OR REPLACE FUNCTION insert_into_audit_order_details() RETURNS trigger AS
+$$
+BEGIN
+	IF TG_OP = 'INSERT' THEN
+		INSERT INTO audit_order_details
+		SELECT 'I', session_user, now(), nt.*
+		FROM new_table AS nt;
+	ELSEIF TG_OP = 'UPDATE' THEN
+		INSERT INTO audit_order_details
+		SELECT 'U', session_user, now(), nt.*
+		FROM new_table AS nt;
+	ELSEIF TG_OP = 'DELETE' THEN
+		INSERT INTO audit_order_details
+		SELECT 'D', session_user, now(), ot.*
+		FROM old_table AS ot;
+	END IF;
+	
+	RETURN NULL;
+END;
+$$ LANGUAGE PLpgSQL;
+
+CREATE TRIGGER insert_into_order_details AFTER INSERT ON order_details
+	REFERENCING NEW TABLE AS new_table
+	FOR EACH STATEMENT EXECUTE PROCEDURE insert_into_audit_order_details();
+	
+CREATE TRIGGER update_in_order_details AFTER UPDATE ON order_details
+	REFERENCING NEW TABLE AS new_table
+	FOR EACH STATEMENT EXECUTE PROCEDURE insert_into_audit_order_details();
+
+CREATE TRIGGER delete_from_order_details AFTER DELETE ON order_details
+	REFERENCING OLD TABLE AS old_table
+	FOR EACH STATEMENT EXECUTE PROCEDURE insert_into_audit_order_details();
+	
+-- проверка
+INSERT INTO order_details
+VALUES (11078, 52, 9, 5, 0);
+
+UPDATE order_details
+SET discount = 1
+WHERE order_id = 11078;
+
+DELETE FROM order_details
+WHERE order_id = 11078;
+
+SELECT * FROM audit_order_details;
+
+SELECT session_user;
