@@ -1,0 +1,122 @@
+-- создадим роли:
+CREATE ROLE sales_stuff;
+CREATE ROLE northwind_admins;
+
+-- создадим пользователей:
+CREATE ROLE jhon_smith LOGIN PASSWORD 'qwerty';
+CREATE ROLE north_admin1 LOGIN PASSWORD 'qwerty';
+-- но эти пользователи могут входить в любую БД из-за прав public
+
+-- изымем права public для доступа к БД northwind:
+REVOKE CREATE ON SCHEMA public FROM public;
+REVOKE ALL ON DATABASE northwind FROM public;
+-- теперь jhon_smith и north_admin1 не могут входить в БД northwind
+
+-- наделим пользователей правами.
+-- сначала дадим права ролям sales_stuff и northwind_admins.
+-- права на уровне БД: возможность подключиться:
+GRANT CONNECT ON DATABASE northwind TO sales_stuff;
+GRANT CONNECT ON DATABASE northwind TO northwind_admins;
+-- права на уровне схемы public.
+-- право на просмотр объектов схемы:
+GRANT USAGE ON SCHEMA public TO sales_stuff;
+GRANT USAGE ON SCHEMA public TO northwind_admins;
+-- право на создание схем в БД northwind:
+GRANT CREATE ON DATABASE northwind TO northwind_admins;
+-- право на создание объектов в схеме public базы данных northwind:
+GRANT CREATE ON SCHEMA public TO northwind_admins;
+
+-- наделим пользователей правами ролей:
+GRANT sales_stuff TO jhon_smith;
+GRANT northwind_admins TO north_admin1;
+
+-- проверим:
+SELECT *
+FROM information_schema.role_table_grants;
+
+-- назначим sales_stuff CRUD-права на определённые таблицы и только чтение таблицы employees
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+	public.orders,
+	public.order_details,
+	public.products
+		TO sales_stuff;
+
+GRANT SELECT ON TABLE public.employees TO sales_stuff;
+
+-- назначим northwind_admins права на все таблицы в схеме public
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES
+	IN SCHEMA public TO northwind_admins;
+
+-- ограничим доступ к колонке address в таблице employees
+-- сначала изымем права у sales_stuff на доступ к таблице employees:
+REVOKE SELECT ON employees FROM sales_stuff;
+-- выдадим права sales_stuff на чтение из определённых полей таблицы employees:
+GRANT SELECT (employee_id, last_name, first_name, title, title_of_courtesy, birth_date, hire_date,
+			 city, region, postal_code, country, home_phone, "extension", photo, notes, reports_to,
+			 photo_path)
+	ON employees TO sales_stuff;
+
+
+-- ограничим доступ на уровне строк в таблице products
+-- сначала включим контроль доступа к строкам
+ALTER TABLE products
+ENABLE ROW LEVEL SECURITY;
+-- теперь никто не может обратиться к записям таблицы, кроме SUPERUSER.
+-- создадим политику ограничения доступа к строкам, которые отражают товары, снятые с производства:
+CREATE POLICY active_products_for_sales_stuff ON products
+FOR SELECT TO sales_stuff USING (discontinued != 1);
+
+
+-- создадим протеворечивую политику:
+CREATE POLICY reordered_products_for_sales_stuff ON products
+FOR SELECT TO sales_stuff USING (reorder_level > 10);
+-- теперь открылся доступ к тем строкам, которые удовлетворяют этой политике,
+-- но не удовлетворяют первой политике
+-- необходимо создавать согласованную политику, прописывая в ней все условия.
+
+-- удалим вторую политику:
+DROP POLICY reordered_products_for_sales_stuff ON products;
+
+
+-- изымем все права, удалив параллельно объекты, им принадлежащие.
+-- 1. Изымем все привилегии у sales_stuff со всех таблиц:
+REVOKE ALL PRIVILEGES ON employees, orders, order_details, products FROM sales_stuff;
+-- 2. Изымем привилегии на уровне доступа к схеме public:
+REVOKE ALL ON SCHEMA public FROM sales_stuff;
+-- 3. Изымем привилегии на уровне доступа к БД:
+REVOKE ALL ON DATABASE northwind FROM sales_stuff;
+
+-- удалим политики:
+DROP POLICY active_products_for_sales_stuff ON products;
+
+-- удалим роль:
+DROP ROLE sales_stuff;
+-- дополнительно удалим пользователя, который был произведён от этой роли:
+DROP ROLE jhon_smith;
+
+-- проверим пользователей 
+SELECT grantee
+FROM information_schema.role_table_grants
+GROUP BY grantee
+ORDER BY grantee;
+
+SELECT *
+FROM information_schema.role_table_grants
+WHERE grantee = 'north_admin1';
+-- у пользователя north_admin1 имеются зависимые объекты: js
+
+-- удалим привилегии, переназначим собственников и удалим собственность у north_admin1:
+REVOKE ALL PRIVILEGES ON js FROM north_admin1;
+REASSIGN OWNED BY north_admin1 TO postgres;
+DROP OWNED BY north_admin1;
+-- теперь у пользователя north_admin1 отсутствуют зависимые объекты.
+REVOKE ALL ON SCHEMA public FROM north_admin1;
+REVOKE ALL ON DATABASE northwind FROM north_admin1;
+DROP ROLE north_admin1;
+
+-- удалим рорль northwind_admins
+REVOKE ALL ON SCHEMA public FROM northwind_admins;
+REVOKE ALL ON DATABASE northwind FROM northwind_admins;
+REASSIGN OWNED BY northwind_admins TO postgres;
+DROP OWNED BY northwind_admins;
+DROP ROLE northwind_admins;
